@@ -1,0 +1,27 @@
+{% extends 'exchange/base.html' %}
+
+{% block content %}
+	<center>
+    {% if user.is_authenticated %}
+        <br/>
+        <h1>Hello {{ user.get_username }}!</h1>
+        <h3>You balance is {{ balance }} BTC</h3>
+        <br/>
+        <h4>Submit an order: <a href="{% url 'buy_order' %}">Buy Order</a> | <a href="{% url 'sell_order' %}">Sell Order</a></h4>
+        <h4>List of all active orders: <a href="{% url 'active_orders' %}">Order book</a></h4>
+        <br>
+        <h4><a href="{% url 'profit_loss' %}">Check you total profit/loss</a></h4>
+        <br/><br/>
+        Click here to logout: <a href="{% url 'logout' %}">Logout</a>
+    {% else %}
+        <h1>Hello! Authenticate or register to submit orders</h1>
+        <br>
+        <div class="mb-3">
+            Click here to login: <a href="{% url 'login' %}">Login</a>
+        </div>
+        <div class="mb-3">
+            Not a user? Click here to register: <a href="{% url 'register_user' %}">Register</a>
+        </div>
+    {% endif %}
+</center>
+{% endblock %}

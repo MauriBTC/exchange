@@ -1,0 +1,24 @@
+{% extends 'exchange/base.html' %}
+
+{% block content %}
+	<center>
+		{% if user.is_authenticated %}
+			{% if form.errors %}
+				<div class="alert alert-warning alert-dismissible fade show" role="alert">
+					There was an error with your form...
+					<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+				</div>
+			{% endif %}
+
+			<div class="shadow p-4 mb-5 bg-body rounded">
+				<h1>Profit / Loss</h1>
+				<br />
+				<h4>You total profit or loss is {{ total }} USD</h4>
+			</div>
+				<div class="mb-3">
+					Go back to home: <a href="{% url 'home' %}">Home</a>
+				</div>
+			<br />
+		{% endif %}
+	</center>
+{% endblock %}
