@@ -1,4 +1,0 @@
-1) account:
-	username: iorim
-	email: <vuota>
-	psw: iorim
