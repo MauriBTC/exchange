@@ -13,10 +13,6 @@ def createProfile(request, user):
     profile = Profile()
     profile.user = user
     profile.ips = [ip]
-    print("profile: ")
-    print(profile.user)
-    print(profile.ips)
-    print(profile.subprofiles)
     return profile
 
 def createOrder(profile, qty, price, type, status):
