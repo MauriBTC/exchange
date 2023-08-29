@@ -9,7 +9,7 @@ class Profile(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     ips = models.Field(default=[])
     subprofiles = models.Field(default={})
-    btc_balance = models.FloatField(default=random.uniform(1, 10))
+    btc_balance = models.FloatField(default=round(random.uniform(1, 10), 8))
 
 
 class Order(models.Model):
