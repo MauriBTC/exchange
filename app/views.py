@@ -76,11 +76,12 @@ def buy_order(request):
 				form.cleaned_data.get('price'),
 				Order.Types.BUY.value,
 				Order.Status.PUB.value)
-			profile = get_object_or_404(Profile, user=request.user)
+			
 			# Check sell orders to buy
 			sell_orders = Order.objects.all().filter(type=Order.Types.SELL.value).filter(status=Order.Status.PUB.value).filter(price__lte=buy_order.price).order_by('-price')
 			print('--- sell orders: ---')
 			pprint(sell_orders)
+			profile = get_object_or_404(Profile, user=request.user)
 			buy_qty = buy_order.quantity
 			for sell_order in sell_orders:
 				if sell_order.quantity == buy_order.quantity:
@@ -131,8 +132,44 @@ def sell_order(request):
 				form.cleaned_data.get('price'),
 				Order.Types.SELL.value,
 				Order.Status.PUB.value)
-			# TODO: check buy orders to buy (not requested by project requirements)
-			sell_order.save()
+			
+			# Check buy orders to buy
+			buy_orders = Order.objects.all().filter(type=Order.Types.BUY.value).filter(status=Order.Status.PUB.value).filter(price__gte=sell_order.price).order_by('price')
+			print('--- buy orders: ---')
+			pprint(buy_orders)
+			profile = get_object_or_404(Profile, user=request.user)
+			sell_qty = sell_order.quantity
+			for buy_order in buy_orders:
+				if buy_order.quantity == sell_order.quantity:
+					buy_order.status = Order.Status.EX.value
+					buy_order.save()
+					sell_qty -= buy_order.quantity
+					sell_order.status = Order.Status.EX.value
+					sell_order.save()
+					profile.btc_balance -= sell_order.quantity
+					profile.save()
+					break
+				elif buy_order.quantity < sell_order.quantity:
+					sell_qty -= buy_order.quantity
+					sell_order.quantity -= buy_order.quantity
+					buy_order.status = Order.Status.EX.value
+					buy_order.save()
+					# save later the sell order if not totally filled
+				else: # buy_order.quantity > sell_qty
+					buy_order.quantity -= sell_order.quantity
+					buy_order.save()
+					sell_qty = 0
+					sell_order.status = Order.Status.EX.value
+					sell_order.save()
+					profile.btc_balance -= buy_order.quantity
+					profile.save()
+					break
+			
+			# if sell order is not totally filled, save it as "published" for the remaining quantity
+			print("--- sell_qty: " + str(sell_qty) + " ---")
+			if sell_qty > 0:
+				sell_order.save()
+
 			messages.success(request, ("Sell order successfully submitted!"))
 			return redirect('home')
 	else:
