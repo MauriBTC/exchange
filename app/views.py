@@ -6,7 +6,6 @@ from datetime import datetime
 from .forms import RegisterUserForm, BuyOrderForm, SellOrderForm
 from .utils import createProfile, createOrder, getIpAddress
 from app.models import Profile, Order
-from pprint import pprint
 
 def login_user(request):
 	if request.method == "POST":
@@ -79,8 +78,6 @@ def buy_order(request):
 			
 			# Check sell orders to buy
 			sell_orders = Order.objects.all().filter(type=Order.Types.SELL.value).filter(status=Order.Status.PUB.value).filter(price__lte=buy_order.price).order_by('-price')
-			print('--- sell orders: ---')
-			pprint(sell_orders)
 			profile = get_object_or_404(Profile, user=request.user)
 			buy_qty = buy_order.quantity
 			for sell_order in sell_orders:
@@ -92,13 +89,8 @@ def buy_order(request):
 					buy_order.save()
 					profile.btc_balance += buy_order.quantity
 					profile.save()
-				elif sell_order.quantity < buy_order.quantity:
-					buy_qty -= sell_order.quantity
-					buy_order.quantity -= sell_order.quantity
-					sell_order.status = Order.Status.EX.value
-					sell_order.save()
-					# save later the buy order if not totally filled
-				else: # sell_order.quantity > buy_qty
+					break
+				elif sell_order.quantity > buy_order.quantity:
 					sell_order.quantity -= buy_order.quantity
 					sell_order.save()
 					buy_qty = 0
@@ -106,9 +98,16 @@ def buy_order(request):
 					buy_order.save()
 					profile.btc_balance += buy_order.quantity
 					profile.save()
+					break
+				else: # sell_order.quantity < buy_order.quantity
+					buy_qty -= sell_order.quantity
+					buy_order.quantity -= sell_order.quantity
+					sell_order.status = Order.Status.EX.value
+					sell_order.save()
+					# save later the buy order if not totally filled
+				
 			
 			# if buy order is not totally filled, save it as "published" for the remaining quantity
-			print("--- buy_qty: " + str(buy_qty) + " ---")
 			if buy_qty > 0:
 				buy_order.save()
 			
@@ -120,7 +119,8 @@ def buy_order(request):
 	return render(request, 'exchange/buy_order.html', {
 		'form': form,
 		})
-	
+
+""" Un ordine di vendita di una quantità x di BTC ad un prezzo y viene matchato con tutti gli ordini di vendita con un prezzo uguale o superiore a y, ordinati per prezzo, fino a raggiungere la quantità totale di x BTC. Se gli ordini di acquisto non bastano, l'ordine di vendita rimane attivo per la quantità rimanente. """
 def sell_order(request):
 	if request.method == 'POST':
 		form = SellOrderForm(request.POST)
@@ -135,8 +135,6 @@ def sell_order(request):
 			
 			# Check buy orders to buy
 			buy_orders = Order.objects.all().filter(type=Order.Types.BUY.value).filter(status=Order.Status.PUB.value).filter(price__gte=sell_order.price).order_by('price')
-			print('--- buy orders: ---')
-			pprint(buy_orders)
 			profile = get_object_or_404(Profile, user=request.user)
 			sell_qty = sell_order.quantity
 			for buy_order in buy_orders:
@@ -149,13 +147,7 @@ def sell_order(request):
 					profile.btc_balance -= sell_order.quantity
 					profile.save()
 					break
-				elif buy_order.quantity < sell_order.quantity:
-					sell_qty -= buy_order.quantity
-					sell_order.quantity -= buy_order.quantity
-					buy_order.status = Order.Status.EX.value
-					buy_order.save()
-					# save later the sell order if not totally filled
-				else: # buy_order.quantity > sell_qty
+				elif buy_order.quantity > sell_order.quantity:
 					buy_order.quantity -= sell_order.quantity
 					buy_order.save()
 					sell_qty = 0
@@ -164,9 +156,14 @@ def sell_order(request):
 					profile.btc_balance -= buy_order.quantity
 					profile.save()
 					break
+				else: # buy_order.quantity < sell_order.quantity
+					sell_qty -= buy_order.quantity
+					sell_order.quantity -= buy_order.quantity
+					buy_order.status = Order.Status.EX.value
+					buy_order.save()
+					# save later the sell order if not totally filled
 			
 			# if sell order is not totally filled, save it as "published" for the remaining quantity
-			print("--- sell_qty: " + str(sell_qty) + " ---")
 			if sell_qty > 0:
 				sell_order.save()
 
